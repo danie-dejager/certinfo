@@ -1,34 +1,50 @@
-Name: certinfo
-Version: 1.1.3
-Release: 1%{?dist}
-Summary: Certificate Information Tool
-License: MIT
-URL: https://github.com/daniejstriata/certinfo
-Source0: https://github.com/daniejstriata/certinfo/archive/refs/tags/%{version}.tar.gz
+Name:           certinfo
+Version:        1.2.0
+Release:        1%{?dist}
+Summary:        Certificate Information Tool
+License:        MIT
+URL:            https://github.com/daniejstriata/certinfo
+Source0:        https://github.com/daniejstriata/certinfo/archive/refs/tags/%{version}.tar.gz
 
+# We use CMake now
+BuildRequires:  cmake
+BuildRequires:  gcc
+BuildRequires:  gcc-c++
+BuildRequires:  openssl-devel
+BuildRequires:  make
+
+# No debug package (your previous choice)
 %define debug_package %{nil}
 
-BuildRequires: gcc-c++
-BuildRequires: openssl-devel
-
 %description
-Certinfo is a tool to display information from X.509 certificates.
+Certinfo extracts and displays information from X.509 certificates,
+including CN, validity period, and Subject Alternative Names (SAN).
 
 %prep
 %autosetup -n certinfo-%{version}
 
 %build
-%configure
-make CFLAGS="%{optflags} -std=c99" %{?_smp_mflags}
+# Standard CMake out-of-tree build
+%cmake -DBUILD_C=ON -DBUILD_CPP=ON
+%cmake_build
 
 %install
-mkdir -p %{buildroot}/%{_bindir}
-install -m 755 certinfo %{buildroot}/%{_bindir}
+# Install both into buildroot
+%cmake_install
+
+# Now remove the C version so only C++ ships:
+rm -f %{buildroot}%{_bindir}/certinfo_c
+
+# Rename cpp version to main binary name
+mv %{buildroot}%{_bindir}/certinfo_cpp %{buildroot}%{_bindir}/certinfo
 
 %files
 %{_bindir}/certinfo
 
 %changelog
+* Tue Dec 3 2025 Danie de Jager <danie.dejager@gmail.com> - 1.2.0-1
+- First release using CMake.
+- Build both C and C++ implementations, ship the C++ binary.
 * Fri Oct 4 2024 Danie de Jager <danie.dejager@gmail.com> - 1.1.3-1
 - Fix for cert counter limit.
 * Wed Oct 2 2024 Danie de Jager <danie.dejager@gmail.com> - 1.1.2-1
