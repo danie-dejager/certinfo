@@ -1,0 +1,3 @@
+#pragma once
+
+#define CERTINFO_VERSION "@PROJECT_VERSION@"
