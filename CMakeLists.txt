@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
-project(certinfo VERSION 1.4.0 LANGUAGES C CXX)
+project(certinfo VERSION 1.2.0 LANGUAGES C CXX)
 
 # Options
 option(BUILD_C "Build C implementation" ON)
