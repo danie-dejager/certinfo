@@ -1,6 +1,8 @@
 to compile:
 ```
-./configure
+mkdir build
+cd build
+cmake -DCMAKE_BUILD_TYPE=Release ..
 make
 ```
 
