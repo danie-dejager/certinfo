@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
-project(certinfo VERSION 1.2.0 LANGUAGES C CXX)
+project(certinfo VERSION 1.4.0 LANGUAGES C CXX)
 
 # Options
 option(BUILD_C "Build C implementation" ON)
@@ -34,27 +34,72 @@ find_package(OpenSSL REQUIRED)
 # Generate version.h
 # ---------------------------
 configure_file(
-    ${CMAKE_SOURCE_DIR}/src/version.h.in
-    ${CMAKE_BINARY_DIR}/generated/version.h
+    ${PROJECT_SOURCE_DIR}/src/version.h.in
+    ${PROJECT_BINARY_DIR}/generated/version.h
     @ONLY
 )
 
-include_directories(${CMAKE_BINARY_DIR}/generated)
 
 # C implementation
 if (BUILD_C)
     add_executable(certinfo_c src/c/certinfo.c)
-    target_link_libraries(certinfo_c PRIVATE OpenSSL::SSL OpenSSL::Crypto)
+    target_include_directories(certinfo_c PRIVATE ${PROJECT_BINARY_DIR}/generated)
+    target_link_libraries(certinfo_c PRIVATE OpenSSL::Crypto)
     install(TARGETS certinfo_c)
 endif()
 
 # C++ implementation
 if (BUILD_CPP)
     add_executable(certinfo_cpp src/cpp/certinfo.cpp)
-    target_link_libraries(certinfo_cpp PRIVATE OpenSSL::SSL OpenSSL::Crypto)
+    target_include_directories(certinfo_cpp PRIVATE ${PROJECT_BINARY_DIR}/generated)
+    target_link_libraries(certinfo_cpp PRIVATE OpenSSL::Crypto)
     install(TARGETS certinfo_cpp)
 endif()
 
 message(STATUS "Build C:   ${BUILD_C}")
 message(STATUS "Build C++: ${BUILD_CPP}")
 message(STATUS "Project version: ${PROJECT_VERSION}")
+
+include(CTest)
+if (BUILD_TESTING)
+    find_package(Python3 COMPONENTS Interpreter QUIET)
+    if (Python3_Interpreter_FOUND AND (BUILD_C OR BUILD_CPP))
+        add_executable(certinfo_test_cert tests/create_certificate.c)
+        target_link_libraries(certinfo_test_cert PRIVATE OpenSSL::Crypto)
+
+        set(CERTINFO_TEST_IMPLEMENTATIONS)
+        if (BUILD_C)
+            list(APPEND CERTINFO_TEST_IMPLEMENTATIONS
+                --implementation "C=$<TARGET_FILE:certinfo_c>")
+        endif()
+        if (BUILD_CPP)
+            list(APPEND CERTINFO_TEST_IMPLEMENTATIONS
+                --implementation "C++=$<TARGET_FILE:certinfo_cpp>")
+        endif()
+
+        execute_process(
+            COMMAND ${Python3_EXECUTABLE} -c "import cryptography"
+            RESULT_VARIABLE CERTINFO_PYTHON_CRYPTOGRAPHY_RESULT
+            OUTPUT_QUIET
+            ERROR_QUIET
+        )
+        set(CERTINFO_TEST_PYTHON_ARGUMENTS)
+        if (CERTINFO_PYTHON_CRYPTOGRAPHY_RESULT EQUAL 0)
+            list(APPEND CERTINFO_TEST_PYTHON_ARGUMENTS
+                --python-script ${PROJECT_SOURCE_DIR}/src/certinfo.py)
+        else()
+            message(STATUS "Python conformance tests disabled: cryptography is not installed")
+        endif()
+
+        add_test(
+            NAME certinfo_conformance
+            COMMAND ${Python3_EXECUTABLE} ${PROJECT_SOURCE_DIR}/tests/conformance.py
+                --generator $<TARGET_FILE:certinfo_test_cert>
+                --version ${PROJECT_VERSION}
+                ${CERTINFO_TEST_IMPLEMENTATIONS}
+                ${CERTINFO_TEST_PYTHON_ARGUMENTS}
+        )
+    elseif(NOT Python3_Interpreter_FOUND)
+        message(STATUS "Certinfo tests disabled: Python 3 interpreter not found")
+    endif()
+endif()

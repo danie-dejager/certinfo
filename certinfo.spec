@@ -1,6 +1,6 @@
 Name:           certinfo
-Version:        1.2.0
-Release:        2%{?dist}
+Version:        1.4.0
+Release:        1%{?dist}
 Summary:        Certificate Information Tool
 License:        MIT
 URL:            https://github.com/daniejstriata/certinfo
@@ -42,6 +42,12 @@ mv %{buildroot}%{_bindir}/certinfo_cpp %{buildroot}%{_bindir}/certinfo
 %{_bindir}/certinfo
 
 %changelog
+* Tue Oct 20 2026 Danie de Jager <danie.dejager@gmail.com> - 1.4.0-1
+- Report not-yet-valid certificates and unknown time comparisons.
+- Escape certificate text and support color-aware output.
+* Tue Oct 20 2026 Danie de Jager <danie.dejager@gmail.com> - 1.3.0-1
+- Detect malformed or truncated certificate data after readable certificates.
+- Add shared C, C++, and Python conformance coverage.
 * Tue Dec 3 2025 Danie de Jager <danie.dejager@gmail.com> - 1.2.0-1
 - First release using CMake.
 - Build both C and C++ implementations, ship the C++ binary.
